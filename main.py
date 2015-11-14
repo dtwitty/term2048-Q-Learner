@@ -42,7 +42,7 @@ class Learner(object):
     # output layer
     self.W_fc2 = weight_variable([9, 4])
     self.b_fc2 = bias_variable([4])
-    self.y = tf.nn.sigmoid(tf.matmul(self.h_fc1, self.W_fc2) + self.b_fc2)
+    self.y = tf.nn.softmax(tf.matmul(self.h_fc1, self.W_fc2) + self.b_fc2)
 
     # training
     self.cross_entropy = -tf.reduce_sum(self.y_ * tf.log(self.y))
