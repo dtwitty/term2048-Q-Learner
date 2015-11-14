@@ -6,12 +6,16 @@ import os
 import os.path
 import math
 import sys
+from time import sleep
 
 from colorama import init, Fore, Style
 init(autoreset=True)
 
 from term2048 import keypress
 from term2048.board import Board
+
+import tensorflow as tf
+import numpy as np
 
 class Game(object):
     """
@@ -60,7 +64,7 @@ class Game(object):
     SCORES_FILE = '%s/.term2048.scores' % os.path.expanduser('~')
     STORE_FILE = '%s/.term2048.store' % os.path.expanduser('~')
 
-    def __init__(self, scores_file=SCORES_FILE, colors=COLORS,
+    def __init__(self, learner=None, scores_file=SCORES_FILE, colors=COLORS,
                  store_file=STORE_FILE, clear_screen=True,
                  mode=None, azmode=False, **kws):
         """
@@ -75,15 +79,19 @@ class Game(object):
         """
         self.board = Board(**kws)
         self.score = 0
+        self.prev_score = 0
         self.scores_file = scores_file
         self.store_file = store_file
         self.clear_screen = clear_screen
+        self.prev_action = keypress.UP
 
         self.__colors = colors
         self.__azmode = azmode
 
         self.loadBestScore()
         self.adjustColors(mode)
+
+        self.learner = learner
 
     def adjustColors(self, mode='dark'):
         """
@@ -125,16 +133,32 @@ class Game(object):
         """
         update the current score by adding it the specified number of points
         """
+        self.prev_score = self.score
         self.score += pts
         if self.score > self.best_score:
             self.best_score = self.score
+
+    def runTrainStep(self):
+      """
+      update the learner with the last state, last action, and score change
+      """
+      prev_state = np.ndarray.flatten(np.array(self.board.prev_cells))
+      next_state = np.ndarray.flatten(np.array(self.board.cells))
+      prev_action = np.array([self.prev_action])
+      example_reward = self.score - self.prev_score
+      self.learner.add_example(prev_state, example_reward, next_state)
+
+    def getNextMove(self):
+      state = np.ndarray.flatten(np.array(self.board.cells))
+      return self.learner.get_next_move(state)
 
     def readMove(self):
         """
         read and return a move to pass to a board
         """
-        k = keypress.getKey()
-        return Game.__dirs.get(k)
+        j = self.getNextMove()
+        self.prev_action = j
+        return Game.__dirs.get(j)
 
     def store(self):
         """
@@ -233,10 +257,12 @@ class Game(object):
                     return
 
                 self.incScore(self.board.move(m))
+                self.runTrainStep()
+                sleep(0.2)
 
         except KeyboardInterrupt:
             self.saveBestScore()
-            return
+            exit()
 
         self.saveBestScore()
         print('You won!' if self.board.won() else 'Game Over')
@@ -283,5 +309,5 @@ class Game(object):
         b = self.boardToString(margins=margins)
         top = '\n'*margins.get('top', 0)
         bottom = '\n'*margins.get('bottom', 0)
-        scores = ' \tScore: %5d  Best: %5d\n' % (self.score, self.best_score)
+        scores = ' \tScore: (%5d, %5d)  Best: %5d\n' % (self.prev_score, self.score, self.best_score)
         return top + b.replace('\n', scores, 1) + bottom

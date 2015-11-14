@@ -34,7 +34,7 @@ def parse_cli_args():
     return vars(parser.parse_args())
 
 
-def start_game(debug=False):
+def start_game(learner, debug=False):
     """
     Start a new game. If ``debug`` is set to ``True``, the game object is
     returned and the game loop isn't fired.
@@ -47,7 +47,7 @@ def start_game(debug=False):
     if args['rules']:
         print_rules_and_exit()
 
-    game = Game(**args)
+    game = Game(learner=learner,**args) 
     if args['resume']:
         game.restore()
 

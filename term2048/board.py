@@ -16,13 +16,14 @@ class Board(object):
     UP, DOWN, LEFT, RIGHT, PAUSE = 1, 2, 3, 4, 5
 
     GOAL = 2048
-    SIZE = 4
+    SIZE = 3
 
     def __init__(self, goal=GOAL, size=SIZE, **kws):
         self.__size = size
         self.__size_range = xrange(0, self.__size)
         self.__goal = goal
         self.__won = False
+        self.prev_cells = [[0]*self.__size for _ in xrange(self.__size)]
         self.cells = [[0]*self.__size for _ in xrange(self.__size)]
         self.addTile()
         self.addTile()
@@ -150,6 +151,7 @@ class Board(object):
         """
         move and return the move score
         """
+        self.prev_cells = list(self.cells)
         if d == Board.LEFT or d == Board.RIGHT:
             chg, get = self.setLine, self.getLine
         elif d == Board.UP or d == Board.DOWN:
