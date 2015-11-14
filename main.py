@@ -46,32 +46,46 @@ class Learner(object):
 
     # training
     self.cross_entropy = -tf.reduce_sum(self.y_ * tf.log(self.y))
-    self.train_step = tf.train.AdamOptimizer(1e-4).minimize(self.cross_entropy)
+    self.train_step = tf.train.GradientDescentOptimizer(0.01).minimize(self.cross_entropy)
 
     self.q = tf.reduce_max(self.y)
     self.prediction = tf.argmax(self.y, 1)
 
     self.session.run(tf.initialize_all_variables())
 
-    self.discount_factor = 1
+    self.discount_factor = 0.9
     self.learning_rate = 0.9
+    self.counter = 10
 
-  def add_example(self, example_input, example_reward, next_state):
+  def add_example(self, example_input, example_action, example_reward, next_state):
+    example_action = self.KEY_TO_INDEX[example_action]
     old_value = self.q.eval(feed_dict={self.x: np.matrix(example_input)})
+    if example_reward == 0:
+      example_reward = -1
     print "old value:", old_value
     print "reward:", example_reward
     update = self.y.eval(feed_dict={self.x: np.matrix(next_state)})
+    bias = np.zeros(4)
+    bias[example_action] += example_reward
+    update += bias
+    print "update:", update
     train_value = old_value + self.learning_rate * (
-        example_reward + self.discount_factor * update - old_value)
+        self.discount_factor * update - old_value)
     self.train_step.run(feed_dict={self.x: np.matrix(example_input),
                                    self.y_: np.matrix(train_value)})
     print "example added: %s -> %s" % (example_input, train_value)
 
   def get_next_move(self, state):
+    weights = self.y.eval(feed_dict={self.x: np.matrix(state)})[0]
+    print "weights:", weights
     best_action = self.prediction.eval(feed_dict={self.x: np.matrix(state)})[0]
     print "predicted action:", best_action
-    if randint(1, 10) == 1:
-      best_action = randint(0, 3)
+    self.counter += 1
+    random_chance = 1 /(self.counter / self.counter ** 0.5)
+    print "random chance:", random_chance
+    if randint(1, self.counter) < self.counter ** 0.5:
+      pass
+      #best_action = randint(0, 3)
     print "taken action:", best_action
     return self.INDEX_TO_KEY[best_action]
 

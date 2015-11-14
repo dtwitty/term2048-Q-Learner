@@ -144,9 +144,8 @@ class Game(object):
       """
       prev_state = np.ndarray.flatten(np.array(self.board.prev_cells))
       next_state = np.ndarray.flatten(np.array(self.board.cells))
-      prev_action = np.array([self.prev_action])
       example_reward = self.score - self.prev_score
-      self.learner.add_example(prev_state, example_reward, next_state)
+      self.learner.add_example(prev_state, self.prev_action, example_reward, next_state)
 
     def getNextMove(self):
       state = np.ndarray.flatten(np.array(self.board.cells))
@@ -258,7 +257,7 @@ class Game(object):
 
                 self.incScore(self.board.move(m))
                 self.runTrainStep()
-                sleep(0.2)
+                sleep(0.05)
 
         except KeyboardInterrupt:
             self.saveBestScore()
